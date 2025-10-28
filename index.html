@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hapus Repository GitHub</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f8fa;
+            color: #24292e;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #0366d6;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #0366d6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.3);
+        }
+
+        button {
+            background-color: #0366d6;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #0256b9;
+        }
+
+        button.delete-btn {
+            background-color: #d73a49;
+        }
+
+        button.delete-btn:hover {
+            background-color: #cb2431;
+        }
+
+        .repository-list {
+            margin-top: 30px;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .repository-item {
+            padding: 15px;
+            border-bottom: 1px solid #e1e4e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .repository-item:last-child {
+            border-bottom: none;
+        }
+
+        .repository-info {
+            flex: 1;
+        }
+
+        .repository-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: #0366d6;
+        }
+
+        .repository-description {
+            color: #586069;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .repository-meta {
+            display: flex;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #586069;
+        }
+
+        .repository-meta span {
+            margin-right: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #586069;
+        }
+
+        .error {
+            background-color: #ffdce0;
+            color: #86181d;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #f97583;
+        }
+
+        .success {
+            background-color: #dcffe4;
+            color: #176f2c;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #34d058;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .checkbox-container input {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .actions button {
+            flex: 1;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #586069;
+        }
+
+        .empty-state p {
+            margin-top: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+
+            .repository-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .checkbox-container {
+                margin-top: 10px;
+                align-self: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hapus Repository GitHub</h1>
+        
+        <div id="error-message" class="error" style="display: none;"></div>
+        <div id="success-message" class="success" style="display: none;"></div>
+        
+        <div class="form-group">
+            <label for="token">Token GitHub</label>
+            <input type="text" id="token" placeholder="Masukkan token GitHub Anda">
+        </div>
+        
+        <div class="form-group">
+            <label for="username">Username GitHub</label>
+            <input type="text" id="username" placeholder="Masukkan username GitHub Anda">
+        </div>
+        
+        <button id="fetch-repos">Ambil Daftar Repository</button>
+        
+        <div id="repository-list" class="repository-list" style="display: none;">
+            <div class="loading" id="loading">Memuat repository...</div>
+            <div id="repositories-container"></div>
+            <div class="actions" id="actions" style="display: none;">
+                <button id="delete-selected" class="delete-btn">Hapus Repository Terpilih</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tokenInput = document.getElementById('token');
+            const usernameInput = document.getElementById('username');
+            const fetchReposBtn = document.getElementById('fetch-repos');
+            const repositoryList = document.getElementById('repository-list');
+            const repositoriesContainer = document.getElementById('repositories-container');
+            const loading = document.getElementById('loading');
+            const actions = document.getElementById('actions');
+            const deleteSelectedBtn = document.getElementById('delete-selected');
+            const errorMessage = document.getElementById('error-message');
+            const successMessage = document.getElementById('success-message');
+
+            // Fungsi untuk menampilkan pesan error
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+                successMessage.style.display = 'none';
+            }
+
+            // Fungsi untuk menampilkan pesan sukses
+            function showSuccess(message) {
+                successMessage.textContent = message;
+                successMessage.style.display = 'block';
+                errorMessage.style.display = 'none';
+            }
+
+            // Fungsi untuk menyembunyikan semua pesan
+            function hideMessages() {
+                errorMessage.style.display = 'none';
+                successMessage.style.display = 'none';
+            }
+
+            // Event listener untuk tombol ambil repository
+            fetchReposBtn.addEventListener('click', function() {
+                const token = tokenInput.value.trim();
+                const username = usernameInput.value.trim();
+
+                if (!token) {
+                    showError('Token GitHub diperlukan');
+                    return;
+                }
+
+                if (!username) {
+                    showError('Username GitHub diperlukan');
+                    return;
+                }
+
+                hideMessages();
+                repositoryList.style.display = 'block';
+                loading.style.display = 'block';
+                repositoriesContainer.innerHTML = '';
+                actions.style.display = 'none';
+
+                // Panggil API untuk mendapatkan daftar repository
+                fetch('github_api.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=fetch_repos&token=${encodeURIComponent(token)}&username=${encodeURIComponent(username)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+                    
+                    if (data.error) {
+                        showError(data.error);
+                        return;
+                    }
+
+                    if (data.repositories && data.repositories.length > 0) {
+                        displayRepositories(data.repositories);
+                        actions.style.display = 'flex';
+                    } else {
+                        repositoriesContainer.innerHTML = `
+                            <div class="empty-state">
+                                <h3>Tidak ada repository</h3>
+                                <p>Akun GitHub Anda tidak memiliki repository atau token tidak memiliki akses yang cukup.</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    loading.style.display = 'none';
+                    showError('Terjadi kesalahan saat mengambil data: ' + error.message);
+                });
+            });
+
+            // Fungsi untuk menampilkan daftar repository
+            function displayRepositories(repositories) {
+                repositoriesContainer.innerHTML = '';
+                
+                repositories.forEach(repo => {
+                    const repoElement = document.createElement('div');
+                    repoElement.className = 'repository-item';
+                    
+                    repoElement.innerHTML = `
+                        <div class="repository-info">
+                            <div class="repository-name">${repo.name}</div>
+                            <div class="repository-description">${repo.description || 'Tidak ada deskripsi'}</div>
+                            <div class="repository-meta">
+                                <span>⭐ ${repo.stargazers_count}</span>
+                                <span>🍴 ${repo.forks_count}</span>
+                                <span>${repo.private ? '🔒 Private' : '🌐 Public'}</span>
+                            </div>
+                        </div>
+                        <div class="checkbox-container">
+                            <input type="checkbox" id="repo-${repo.name}" value="${repo.name}">
+                            <label for="repo-${repo.name}">Pilih</label>
+                        </div>
+                    `;
+                    
+                    repositoriesContainer.appendChild(repoElement);
+                });
+            }
+
+            // Event listener untuk tombol hapus repository terpilih
+            deleteSelectedBtn.addEventListener('click', function() {
+                const token = tokenInput.value.trim();
+                const username = usernameInput.value.trim();
+                const selectedRepos = [];
+                
+                // Kumpulkan repository yang dipilih
+                document.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+                    selectedRepos.push(checkbox.value);
+                });
+                
+                if (selectedRepos.length === 0) {
+                    showError('Pilih setidaknya satu repository untuk dihapus');
+                    return;
+                }
+
+                if (!confirm(`Anda yakin ingin menghapus ${selectedRepos.length} repository? Tindakan ini tidak dapat dibatalkan!`)) {
+                    return;
+                }
+
+                hideMessages();
+                loading.style.display = 'block';
+                loading.textContent = 'Menghapus repository...';
+                
+                // Hapus repository satu per satu
+                const deletePromises = selectedRepos.map(repoName => {
+                    return fetch('github_api.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `action=delete_repo&token=${encodeURIComponent(token)}&username=${encodeURIComponent(username)}&repo=${encodeURIComponent(repoName)}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            throw new Error(`Gagal menghapus ${repoName}: ${data.error}`);
+                        }
+                        return { name: repoName, success: true };
+                    })
+                    .catch(error => {
+                        return { name: repoName, success: false, error: error.message };
+                    });
+                });
+                
+                // Tunggu semua proses penghapusan selesai
+                Promise.all(deletePromises)
+                    .then(results => {
+                        loading.style.display = 'none';
+                        
+                        const successfulDeletes = results.filter(r => r.success);
+                        const failedDeletes = results.filter(r => !r.success);
+                        
+                        if (failedDeletes.length === 0) {
+                            showSuccess(`Berhasil menghapus ${successfulDeletes.length} repository`);
+                            // Refresh daftar repository
+                            fetchReposBtn.click();
+                        } else {
+                            let errorMsg = `Berhasil menghapus ${successfulDeletes.length} repository, gagal menghapus ${failedDeletes.length} repository:`;
+                            failedDeletes.forEach(failed => {
+                                errorMsg += `\n- ${failed.name}: ${failed.error}`;
+                            });
+                            showError(errorMsg);
+                            
+                            // Refresh daftar repository untuk memperbarui tampilan
+                            if (successfulDeletes.length > 0) {
+                                fetchReposBtn.click();
+                            }
+                        }
+                    });
+            });
+        });
+    </script>
+</body>
+</html>
