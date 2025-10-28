@@ -291,8 +291,29 @@
                     },
                     body: `action=fetch_repos&token=${encodeURIComponent(token)}&username=${encodeURIComponent(username)}`
                 })
-                .then(response => response.json())
-                .then(data => {
+                .then(response => {
+                    // Cek status response
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(text => {
+                    // Cek apakah response kosong
+                    if (!text) {
+                        throw new Error('Response kosong dari server');
+                    }
+                    
+                    // Parse JSON
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        console.error('Error parsing JSON:', e);
+                        console.error('Response text:', text);
+                        throw new Error('Format response tidak valid dari server');
+                    }
+                    
                     loading.style.display = 'none';
                     
                     if (data.error) {
@@ -314,6 +335,7 @@
                 })
                 .catch(error => {
                     loading.style.display = 'none';
+                    console.error('Error details:', error);
                     showError('Terjadi kesalahan saat mengambil data: ' + error.message);
                 });
             });
@@ -379,8 +401,26 @@
                         },
                         body: `action=delete_repo&token=${encodeURIComponent(token)}&username=${encodeURIComponent(username)}&repo=${encodeURIComponent(repoName)}`
                     })
-                    .then(response => response.json())
-                    .then(data => {
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.text();
+                    })
+                    .then(text => {
+                        if (!text) {
+                            throw new Error('Response kosong dari server');
+                        }
+                        
+                        let data;
+                        try {
+                            data = JSON.parse(text);
+                        } catch (e) {
+                            console.error('Error parsing JSON:', e);
+                            console.error('Response text:', text);
+                            throw new Error('Format response tidak valid dari server');
+                        }
+                        
                         if (data.error) {
                             throw new Error(`Gagal menghapus ${repoName}: ${data.error}`);
                         }
